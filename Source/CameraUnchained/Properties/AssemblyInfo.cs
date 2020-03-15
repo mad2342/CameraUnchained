@@ -6,5 +6,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("CameraUnchained")]
 [assembly: ComVisible(false)]
 [assembly: Guid("8A385D1A-10BA-4EBC-A6AA-53CD7A8F126E")]
-[assembly: AssemblyVersion("1.9.0.*")]
+[assembly: AssemblyVersion("1.9.1.*")]
 
