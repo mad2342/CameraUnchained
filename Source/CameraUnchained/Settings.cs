@@ -17,8 +17,10 @@ namespace CameraUnchained
         public bool FocusOnPoweringUp = true;
         public bool FocusOnMovement = true;
         public bool FocusOnSensorLock = true;
-        public bool FocusOnMeleeTarget = true;
-        public bool FocusOnRangedTarget = true;
+        public bool FocusOnMelee = true;
+
+        public bool FocusOnTargetedFriendly = true;
+        public bool FocusOnTargetedEnemy = false;
 
         public bool SaveAndRestoreCamPos = false;
         public bool CenterOnTarget = false;

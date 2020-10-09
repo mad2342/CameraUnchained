@@ -4,6 +4,7 @@ using System.Reflection;
 using BattleTech;
 using BattleTech.UI;
 using Harmony;
+using UnityEngine;
 
 namespace CameraUnchained.Patches
 {
@@ -196,6 +197,18 @@ namespace CameraUnchained.Patches
 
                     if (___combatGameState.LocalPlayerTeam.CanDetectPosition(__instance.OwningActor.CurrentPosition, __instance.OwningActor))
                     {
+                        //CameraSequence cameraSequence = CameraControl.Instance.ShowMovementCam(__instance.OwningActor.CurrentPosition, __instance.FinalPos, __instance);
+                        //MultiSequence multiSequence = __instance;
+                        //multiSequence.SetCamera(cameraSequence, __instance.MessageIndex);
+
+                        //Quaternion rotation = CameraControl.Instance.CameraRot;
+                        //Traverse FrameTwoPoints = Traverse.Create(CameraControl.Instance).Method("FrameTwoPoints", rotation * Vector3.forward, __instance.OwningActor.CurrentPosition, __instance.FinalPos, 0.9f, ___combatGameState.Constants.CameraConstants.MaxHeightAboveTerrain * 0.9f);
+                        //Vector3 poi = (Vector3)FrameTwoPoints.GetValue();
+
+                        //Vector3 poi = Vector3.Lerp(__instance.OwningActor.CurrentPosition, __instance.FinalPos, 0.5f);
+                        //CameraControl.Instance.SetMovingToGroundPos(poi, 0.95f);
+
+                        // KISS
                         CameraControl.Instance.SetMovingToGroundPos(__instance.OwningActor.CurrentPosition, 0.95f);
                     }
                     else if (___combatGameState.LocalPlayerTeam.CanDetectPosition(__instance.FinalPos, __instance.OwningActor))
@@ -254,7 +267,7 @@ namespace CameraUnchained.Patches
         {
             public static bool Prepare()
             {
-                return CameraUnchained.Settings.FocusOnMeleeTarget;
+                return CameraUnchained.Settings.FocusOnMelee;
             }
 
             public static void Postfix(MechMeleeSequence __instance)
@@ -290,7 +303,7 @@ namespace CameraUnchained.Patches
         {
             public static bool Prepare()
             {
-                return CameraUnchained.Settings.FocusOnRangedTarget;
+                return CameraUnchained.Settings.FocusOnTargetedFriendly || CameraUnchained.Settings.FocusOnTargetedEnemy;
             }
 
             public static void Postfix(AttackStackSequence __instance, MessageCenterMessage message)
@@ -303,7 +316,11 @@ namespace CameraUnchained.Patches
                     AttackSequenceBeginMessage attackSequenceBeginMessage = message as AttackSequenceBeginMessage;
                     AttackDirector.AttackSequence attackSequence = ___combatGameState.AttackDirector.GetAttackSequence(attackSequenceBeginMessage.sequenceId);
 
-                    if (attackSequence == null)
+                    bool isChosenTargetFriendly = attackSequence.chosenTarget.team.GUID == ___combatGameState.LocalPlayerTeamGuid || ___combatGameState.HostilityMatrix.IsLocalPlayerFriendly(attackSequence.chosenTarget.team.GUID);
+                    bool shouldFocus = (CameraUnchained.Settings.FocusOnTargetedFriendly && isChosenTargetFriendly) || (CameraUnchained.Settings.FocusOnTargetedEnemy && !isChosenTargetFriendly);
+                    Logger.Info($"[AttackStackSequence_OnAttackBegin_POSTFIX] isChosenTargetFriendly: {isChosenTargetFriendly}, shouldFocus: {shouldFocus}");
+
+                    if (attackSequence == null || !shouldFocus)
                     {
                         return;
                     }
