@@ -315,7 +315,7 @@ namespace CameraUnchained.Patches
                     CombatGameState ___combatGameState = (CombatGameState)AccessTools.Property(typeof(AttackStackSequence), "Combat").GetValue(__instance, null);
                     AttackSequenceBeginMessage attackSequenceBeginMessage = message as AttackSequenceBeginMessage;
                     AttackDirector.AttackSequence attackSequence = ___combatGameState.AttackDirector.GetAttackSequence(attackSequenceBeginMessage.sequenceId);
-
+                    
                     bool isChosenTargetFriendly = attackSequence.chosenTarget.team.GUID == ___combatGameState.LocalPlayerTeamGuid || ___combatGameState.HostilityMatrix.IsLocalPlayerFriendly(attackSequence.chosenTarget.team.GUID);
                     bool shouldFocus = (CameraUnchained.Settings.FocusOnTargetedFriendly && isChosenTargetFriendly) || (CameraUnchained.Settings.FocusOnTargetedEnemy && !isChosenTargetFriendly);
                     Logger.Info($"[AttackStackSequence_OnAttackBegin_POSTFIX] isChosenTargetFriendly: {isChosenTargetFriendly}, shouldFocus: {shouldFocus}");
@@ -440,6 +440,53 @@ namespace CameraUnchained.Patches
 
 
 
+        // Don't touch players camera height
+        [HarmonyPatch(typeof(CameraControl), "ForceMovingToGroundPos")]
+        public static class CameraControl_ForceMovingToGroundPos_Patch
+        {
+            public static bool Prepare()
+            {
+                return CameraUnchained.Settings.MaintainHeight;
+            }
+
+            public static bool Prefix(CameraControl __instance, Transform ___cTrans, float ___zoomTarget, ref Vector3 ___smoothToGroundPosDest, ref Vector3 ___smoothToGroundPosCamDest, ref bool ___isMovingToGroundPos, ref float ___smoothToGroundRatio, CameraControl.CameraState ___state, Vector3 i_dest, float screenRatio = 0.95f)
+            {
+                try
+                {
+                    Logger.Debug($"[CameraControl_ForceMovingToGroundPos_PREFIX] Don't touch players camera height...");
+
+                    if (___state == CameraControl.CameraState.PlayerControlled)
+                    {
+                        CombatGameState ___CGS = (CombatGameState)AccessTools.Property(typeof(CameraControl), "Combat").GetValue(__instance, null);
+
+                        ___smoothToGroundRatio = screenRatio;
+                        i_dest.y = ___CGS.MapMetaData.GetCellAt(i_dest).cachedHeight;
+                        ___isMovingToGroundPos = true;
+                        ___smoothToGroundPosDest = i_dest;
+                        
+                        // Original
+                        //___smoothToGroundPosCamDest = i_dest - ___cTrans.forward * ((___CGS.Constants.CameraConstants.MinHeightAboveTerrain + ___CGS.Constants.CameraConstants.MaxHeightAboveTerrain) * 0.8f);
+
+                        // Max Height (Works)
+                        ___smoothToGroundPosCamDest = i_dest - ___cTrans.forward * ((___CGS.Constants.CameraConstants.MinHeightAboveTerrain + ___CGS.Constants.CameraConstants.MaxHeightAboveTerrain) * 1.0f);
+
+                        // Current Height(Testing)
+                        //___smoothToGroundPosCamDest = i_dest - ___cTrans.forward * ___cTrans.position.y;
+
+                        return false;
+                    }
+
+                    return true;
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e);
+                    return true;
+                }
+            }
+        }
+
+
         /*
         // Enable complete control (debug cam)
         [HarmonyPatch(typeof(CameraControl), "Init")]
@@ -457,45 +504,6 @@ namespace CameraUnchained.Patches
                     }
 
                     __instance.DEBUG_TakeCompleteControl = true;
-
-                }
-                catch (Exception e)
-                {
-                    Logger.Error(e);
-                }
-            }
-        }
-        */
-
-
-
-        /*
-        // Don't touch players camera height
-        [HarmonyPatch(typeof(CameraControl), "ForceMovingToGroundPos")]
-        public static class CameraControl_ForceMovingToGroundPos_Patch
-        {
-            public static void Postfix(CameraControl __instance, Vector3 i_dest, ref Vector3 ___smoothToGroundPosCamDest, Transform ___cTrans)
-            {
-                try
-                {
-                    Logger.Debug($"[CameraControl_ForceMovingToGroundPos_POSTFIX] Don't touch players camera height...");
-
-                    CombatGameState ___combatGameState = (CombatGameState)AccessTools.Property(typeof(CameraControl), "Combat").GetValue(__instance, null);
-
-                    Logger.Debug($"[CameraControl_ForceMovingToGroundPos_POSTFIX] i_dest: {i_dest}");
-                    Logger.Debug($"[CameraControl_ForceMovingToGroundPos_POSTFIX] ___cTrans.forward: {___cTrans.forward}");
-
-                    Logger.Debug($"[CameraControl_ForceMovingToGroundPos_POSTFIX] ___cTrans.position.y: {___cTrans.position.y}");
-
-                    float height = ((___combatGameState.Constants.CameraConstants.MinHeightAboveTerrain + ___combatGameState.Constants.CameraConstants.MaxHeightAboveTerrain) * 0.8f);
-                    Logger.Debug($"[CameraControl_ForceMovingToGroundPos_POSTFIX] height: {height}");
-
-                    Logger.Debug($"[CameraControl_ForceMovingToGroundPos_POSTFIX] __instance.CurrentHeight: {__instance.CurrentHeight}");
-
-                    // Org
-                    //___smoothToGroundPosCamDest = i_dest - ___cTrans.forward * ((___combatGameState.Constants.CameraConstants.MinHeightAboveTerrain + ___combatGameState.Constants.CameraConstants.MaxHeightAboveTerrain) * 0.8f);
-
-                    ___smoothToGroundPosCamDest = i_dest - ___cTrans.forward * ___cTrans.position.y;
 
                 }
                 catch (Exception e)

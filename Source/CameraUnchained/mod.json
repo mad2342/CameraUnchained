@@ -24,6 +24,6 @@
         "FocusOnMelee": true,
 
         "FocusOnTargetedFriendly": true,
-        "FocusOnTargetedEnemy": false
+        "FocusOnTargetedEnemy": true
     }
 }
